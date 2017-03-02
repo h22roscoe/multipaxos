@@ -1,4 +1,4 @@
-
+%%% Harry Roscoe (har14) and Sahil Parekh (sp5714)
 %%% distributed algorithms, n.dulay 27 feb 17
 %%% coursework 2, paxos made moderately complex
 
@@ -8,31 +8,31 @@
 start(Database) ->
   receive
     {bind, Leaders} -> 
-       next(...)
+       next(Leaders)
   end.
 
-next(...) ->
+next(Leaders) ->
   receive
     {request, C} ->      % request from client
-      ...
+      ok;
     {decision, S, C} ->  % decision from commander
-      ... = decide (...)
+      Decision = decide(S, C)
   end, % receive
 
-  ... = propose(...),
-  ...
+  Proposal = propose(),
+  ok.
 
-propose(...) ->
+propose() ->
   WINDOW = 5,
-  ...
+  ok.
    
-decide(...) ->
-  ...
-       perform(...),
-  ...
+decide(Database, Client) ->
+  ok,
+  perform(Database, Client, 1, 1),
+  ok.
 
-perform(...) ->
-  ...
-      Database ! {execute, Op},
-      Client ! {response, Cid, ok}
+perform(Database, Client, Op, Cid) ->
+  ok,
+  Database ! {execute, Op},
+  Client ! {response, Cid, ok}.
 
