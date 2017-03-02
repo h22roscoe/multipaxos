@@ -17,7 +17,7 @@ next(Ballot_num, Accepted) ->
         true ->
           Ballot_num
         end,
-      Scout ! {p1b, self(), Next_ballot_num, Accepted}
+      Scout ! {p1b, self(), Next_ballot_num, Accepted},
       next(Next_ballot_num, Accepted);
 
     {p2a, Commander, {B, Slot, Command}} ->
