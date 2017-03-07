@@ -6,7 +6,7 @@
 start() ->
   Ballot_num = {0, self()},
   Active = false,
-  Proposals = sets:new(),
+  Proposals = [],
   receive
     {bind, Acceptors, Replicas} ->
       spawn(scout, start, [self(), Acceptors, Ballot_num]),
@@ -18,7 +18,7 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
     {propose, Slot, Command} ->
       Taken = slot_taken(Slot, Proposals),
       if not Taken ->
-        New_Proposals = sets:add_element({Slot, Command}, Proposals),
+        New_Proposals = [{Slot, Command}] ++ Proposals,
         if Active ->
           spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}]);
         true ->
@@ -30,7 +30,7 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
       end;
 
     {adopted, Ballot_num, PVals} ->
-      New_Proposals = triangle(sets:to_list(Proposals), pmax(sets:to_list(PVals))),
+      New_Proposals = triangle(Proposals, pmax(PVals)),
       [spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}])
         || {Slot, Command} <- New_Proposals],
       New_Active = true,
@@ -48,15 +48,13 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
   end.
 
 slot_taken(Slot, Proposals) ->
-  {Slots, _} = lists:unzip(sets:to_list(Proposals)),
+  {Slots, _} = lists:unzip(Proposals),
   lists:member(Slot, Slots).
 
 pmax(PVals) ->
-  [{S, C} || {B, S, C} <- PVals, B == max_B_for_slot(PVals, S)].
-
-max_B_for_slot(PVals, Slot) ->
-  {Bs, _, _} = lists:unzip(lists:filter(fun({_, S, _}) -> S == Slot end, PVals)),
-  lists:max(Bs).
+  % Get the biggest ballot numbers first and then take while slot not in list
+  Sorted = lists:usort(fun({B1, S1, _}, {B2, S2, _}) -> (S1 == S2) and (B1 > B2) end, PVals),
+  [{S, C} || {_, S, C} <- Sorted].
 
 triangle(X, Y) ->
-  sets:from_list(Y ++ (X -- Y)).
+  Y ++ (X -- Y).

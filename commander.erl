@@ -10,16 +10,16 @@ start(Leader, Acceptors, Replicas, M) ->
 
 next(Leader, Acceptors, Replicas, {B, Slot, Command}, WaitFor) ->
   receive
-    {p2b, A, NewB} when B == NewB ->
-      New_WaitFor = WaitFor -- [A],
-      if length(New_WaitFor) < length(Acceptors) / 2 ->
-        [P ! {decision, Slot, Command} || P <- Replicas],
-        ok;
-      true ->
-        next(Leader, Acceptors, Replicas, {B, Slot, Command}, New_WaitFor)
-      end;
-
-    {p2b, _, NewB} ->
-      Leader ! {preempted, NewB},
-      ok
+    {p2b, A, NewB} ->
+      case B == NewB of
+        true ->
+          New_WaitFor = WaitFor -- [A],
+          if length(New_WaitFor) < length(Acceptors) / 2 ->
+            [P ! {decision, Slot, Command} || P <- Replicas];
+          true ->
+            next(Leader, Acceptors, Replicas, {B, Slot, Command}, New_WaitFor)
+          end;
+        false ->
+          Leader ! {preempted, NewB}
+      end
   end.

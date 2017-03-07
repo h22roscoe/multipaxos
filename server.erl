@@ -1,4 +1,4 @@
-
+%%% Harry Roscoe (har14) and Sahil Parekh (sp5714)
 %%% distributed algorithms, n.dulay 27 feb 17
 %%% coursework 2, paxos made moderately complex
 
@@ -18,4 +18,3 @@ start(System, N_accounts, End_after) ->
   System ! {config, Replica, Acceptor, Leader},
 
   done.
-
