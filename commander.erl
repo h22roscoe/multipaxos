@@ -14,10 +14,11 @@ next(Leader, Acceptors, Replicas, {B, Slot, Command}, WaitFor) ->
       case B == NewB of
         true ->
           New_WaitFor = WaitFor -- [A],
-          if length(New_WaitFor) < length(Acceptors) / 2 ->
-            [P ! {decision, Slot, Command} || P <- Replicas];
-          true ->
-            next(Leader, Acceptors, Replicas, {B, Slot, Command}, New_WaitFor)
+          case length(New_WaitFor) < length(Acceptors) / 2 of
+            true ->
+              [P ! {decision, Slot, Command} || P <- Replicas];
+            false ->
+              next(Leader, Acceptors, Replicas, {B, Slot, Command}, New_WaitFor)
           end;
         false ->
           Leader ! {preempted, NewB}

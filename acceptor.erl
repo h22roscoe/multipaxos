@@ -12,20 +12,17 @@ next(Ballot_num, Accepted) ->
   receive
     {p1a, Scout, B} ->
       Next_ballot_num =
-        if B > Ballot_num ->
-          B;
-        true ->
-          Ballot_num
-        end,
+        case B > Ballot_num of true -> B; false -> Ballot_num end,
       Scout ! {p1b, self(), Next_ballot_num, Accepted},
       next(Next_ballot_num, Accepted);
 
     {p2a, Commander, {B, Slot, Command}} ->
       Next_accepted =
-        if B == Ballot_num ->
-          Accepted ++ [{B, Slot, Command}];
-        true ->
-          Accepted
+        case B == Ballot_num of
+          true ->
+            Accepted ++ [{B, Slot, Command}];
+          false ->
+            Accepted
         end,
       Commander ! {p2b, self(), Ballot_num},
       next(Ballot_num, Next_accepted)

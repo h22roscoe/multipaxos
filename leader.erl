@@ -17,16 +17,18 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
   receive
     {propose, Slot, Command} ->
       Taken = slot_taken(Slot, Proposals),
-      if not Taken ->
-        New_Proposals = [{Slot, Command}] ++ Proposals,
-        if Active ->
-          spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}]);
+      case not Taken of
         true ->
-          ok
-        end,
-        next(Acceptors, Replicas, Ballot_num, Active, New_Proposals);
-      true ->
-        next(Acceptors, Replicas, Ballot_num, Active, Proposals)
+          New_Proposals = [{Slot, Command}] ++ Proposals,
+          case Active of
+            true ->
+              spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}]);
+            false ->
+              ok
+          end,
+          next(Acceptors, Replicas, Ballot_num, Active, New_Proposals);
+        false ->
+          next(Acceptors, Replicas, Ballot_num, Active, Proposals)
       end;
 
     {adopted, Ballot_num, PVals} ->
@@ -37,13 +39,14 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
       next(Acceptors, Replicas, Ballot_num, New_Active, New_Proposals);
 
     {preempted, {R, Leader}} ->
-      if {R, Leader} > Ballot_num ->
-        New_Active = false,
-        New_Ballot_num = {R + 1, self()},
-        spawn(scout, start, [self(), Acceptors, New_Ballot_num]),
-        next(Acceptors, Replicas, New_Ballot_num, New_Active, Proposals);
-      true ->
-        next(Acceptors, Replicas, Ballot_num, Active, Proposals)
+      case {R, Leader} > Ballot_num of
+        true ->
+          New_Active = false,
+          New_Ballot_num = {R + 1, self()},
+          spawn(scout, start, [self(), Acceptors, New_Ballot_num]),
+          next(Acceptors, Replicas, New_Ballot_num, New_Active, Proposals);
+        false ->
+          next(Acceptors, Replicas, Ballot_num, Active, Proposals)
       end
   end.
 
@@ -57,4 +60,4 @@ pmax(PVals) ->
   [{S, C} || {_, S, C} <- Sorted].
 
 triangle(X, Y) ->
-  Y ++ (X -- Y).
+  sets:to_list(sets:from_list(Y ++ (X -- Y))).
