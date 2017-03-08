@@ -4,16 +4,16 @@
 -export([start/0]).
 
 start() ->
-  Ballot_num = {0, self()},
+  Ballot_Num = {0, self()},
   Active = false,
   Proposals = [],
   receive
     {bind, Acceptors, Replicas} ->
-      spawn(scout, start, [self(), Acceptors, Ballot_num]),
-      next(Acceptors, Replicas, Ballot_num, Active, Proposals)
+      spawn(scout, start, [self(), Acceptors, Ballot_Num]),
+      next(Acceptors, Replicas, Ballot_Num, Active, Proposals)
   end.
 
-next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
+next(Acceptors, Replicas, Ballot_Num, Active, Proposals) ->
   receive
     {propose, Slot, Command} ->
       Taken = slot_taken(Slot, Proposals),
@@ -22,31 +22,31 @@ next(Acceptors, Replicas, Ballot_num, Active, Proposals) ->
           New_Proposals = [{Slot, Command}] ++ Proposals,
           case Active of
             true ->
-              spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}]);
+              spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_Num, Slot, Command}]);
             false ->
               ok
           end,
-          next(Acceptors, Replicas, Ballot_num, Active, New_Proposals);
+          next(Acceptors, Replicas, Ballot_Num, Active, New_Proposals);
         false ->
-          next(Acceptors, Replicas, Ballot_num, Active, Proposals)
+          next(Acceptors, Replicas, Ballot_Num, Active, Proposals)
       end;
 
-    {adopted, Ballot_num, PVals} ->
+    {adopted, Ballot_Num, PVals} ->
       New_Proposals = triangle(Proposals, pmax(PVals)),
-      [spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_num, Slot, Command}])
+      [spawn(commander, start, [self(), Acceptors, Replicas, {Ballot_Num, Slot, Command}])
         || {Slot, Command} <- New_Proposals],
       New_Active = true,
-      next(Acceptors, Replicas, Ballot_num, New_Active, New_Proposals);
+      next(Acceptors, Replicas, Ballot_Num, New_Active, New_Proposals);
 
     {preempted, {R, Leader}} ->
-      case {R, Leader} > Ballot_num of
+      case {R, Leader} > Ballot_Num of
         true ->
           New_Active = false,
-          New_Ballot_num = {R + 1, self()},
-          spawn(scout, start, [self(), Acceptors, New_Ballot_num]),
-          next(Acceptors, Replicas, New_Ballot_num, New_Active, Proposals);
+          New_Ballot_Num = {R + 1, self()},
+          spawn(scout, start, [self(), Acceptors, New_Ballot_Num]),
+          next(Acceptors, Replicas, New_Ballot_Num, New_Active, Proposals);
         false ->
-          next(Acceptors, Replicas, Ballot_num, Active, Proposals)
+          next(Acceptors, Replicas, Ballot_Num, Active, Proposals)
       end
   end.
 
