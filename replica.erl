@@ -30,7 +30,7 @@ next(Leaders, Slot_In, Slot_Out, Requests, Proposals, Decisions, Database) ->
       {Slot_Out_Ps, Others} =
         lists:partition(fun({Slot, _}) -> Slot == Slot_Out end, Proposals),
       {N_Props, N_Requests, N_Slot_Out} =
-        decide(S, C, Slot_Out_Ds, Slot_Out_Ps, Requests, Database, Slot_Out),
+        decide(Slot_Out_Ds, Slot_Out_Ps, Requests, Database, Slot_Out),
       N_Proposals = N_Props ++ Others
   end, % receive
 
@@ -61,14 +61,14 @@ propose(Leaders, Slot_In, Slot_Out, Requests, Proposals, Decisions) ->
   true -> {Slot_In, Requests, Proposals}
   end.
 
-decide(S, C, Decisions, Proposals, Requests, Database, Slot_Out) ->
+decide(Decisions, Proposals, Requests, Database, Slot_Out) ->
   Len_Ds = length(Decisions),
   Len_Ps = length(Proposals),
 
   % Check there are more decisions to loop through
   if Len_Ds > 0 ->
     [{_, CPrime} | Rest] = Decisions,
-    % And check there is exists a proposal within Slot_Out_Ps
+    % And check there is exists a proposal within proposals
     if Len_Ps > 0 ->
       [{S_Out, CPrimePrime} | _] = Proposals,
       N_Proposals = Proposals -- [{S_Out, CPrimePrime}],
@@ -82,9 +82,9 @@ decide(S, C, Decisions, Proposals, Requests, Database, Slot_Out) ->
       N_Proposals = Proposals,
       N_Requests = Requests
     end,
-    N_Slot_Out = perform(Database, C, Decisions, Slot_Out),
+    N_Slot_Out = perform(Database, CPrime, Decisions, Slot_Out),
     % Loop around with new values
-    decide(S, C, Rest, N_Proposals, N_Requests, Database, N_Slot_Out);
+    decide(Rest, N_Proposals, N_Requests, Database, N_Slot_Out);
   % End loop
   true ->
     {Proposals, Requests, Slot_Out}
